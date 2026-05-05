@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using RenderFlow.Features;
 using UnityEditor;
 using UnityEngine;
 using RenderFlow.Features.Collection;
@@ -8,11 +10,20 @@ namespace RenderFlow.Window
 {
     public class RenderFlowWindow : EditorWindow
     {
+        private const int ToggleWidth = 20;
+        private const int OrderWidth = 70;
+        private const int LayerWidth = 110;
+        
         private GameObject _root;
         private List<RenderFlowItem> _items = new();
         private Vector2 _scroll;
         private RenderFlowStyles _styles;
-
+        private RendererModifier _rendererModifier;
+        private int _orderDelta = 1;
+        private int _setOrderValue;
+        private int _selectedLayerIndex;
+        private string[] _sortingLayers;
+        
         [MenuItem("Tools/RenderFlow #t")]
         public static void ShowWindow()
         {
@@ -21,6 +32,7 @@ namespace RenderFlow.Window
 
         private void OnEnable()
         {
+            _rendererModifier = new RendererModifier();
             EditorApplication.hierarchyChanged += Refresh;
         }
 
@@ -35,7 +47,28 @@ namespace RenderFlow.Window
         {
             _styles ??= new RenderFlowStyles();
             DrawHeader();
+            
+            if (!CanDrawContent()) return;
+            
+            DrawModifiers();
             DrawContent();
+        }
+        
+        private bool CanDrawContent()
+        {
+            if (_root == null)
+            {
+                EditorGUILayout.HelpBox("Select a root GameObject", MessageType.Info);
+                return false;
+            }
+
+            if (_items == null || _items.Count == 0)
+            {
+                EditorGUILayout.HelpBox("No Renderers found", MessageType.Warning);
+                return false;
+            }
+
+            return true;
         }
 
         #region Header
@@ -57,9 +90,87 @@ namespace RenderFlow.Window
             }
         }
         
-        private const int ToggleWidth = 20;
-        private const int OrderWidth = 70;
-        private const int LayerWidth = 110;
+        private void DrawModifiers()
+        {
+            EditorGUILayout.Space(20);
+            EditorGUILayout.LabelField("Modify Selection", EditorStyles.boldLabel);
+
+            DrawOrderDelta();
+            DrawSetOrder();
+            DrawLayer();
+        }
+
+        private void DrawLayer()
+        {
+            if (_sortingLayers == null)
+                _sortingLayers = SortingLayer.layers.Select(l => l.name).ToArray();
+
+            EditorGUILayout.BeginHorizontal();
+
+            _selectedLayerIndex = EditorGUILayout.Popup("Layer", _selectedLayerIndex, _sortingLayers);
+
+            if (GUILayout.Button("Apply", GUILayout.Width(80)))
+            {
+                _rendererModifier.SetLayer(_items, _sortingLayers[_selectedLayerIndex]);
+                Refresh();
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawSetOrder()
+        {
+            EditorGUILayout.BeginHorizontal();
+
+            _setOrderValue = EditorGUILayout.IntField("Set Order", _setOrderValue);
+
+            if (GUILayout.Button("Apply", GUILayout.Width(80)))
+            {
+                _rendererModifier.SetOrder(_items, _setOrderValue);
+                Refresh();
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawOrderDelta()
+        {
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("-10"))
+                ApplyDelta(-10);
+
+            if (GUILayout.Button("-1"))
+                ApplyDelta(-1);
+
+            _orderDelta = EditorGUILayout.IntField(_orderDelta, GUILayout.Width(50));
+
+            if (GUILayout.Button("+1"))
+                ApplyDelta(1);
+
+            if (GUILayout.Button("+10"))
+                ApplyDelta(10);
+            
+            if (GUILayout.Button("Apply", GUILayout.Width(80)))
+            {
+                ApplyDelta(_orderDelta);
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void ApplyDelta(int delta)
+        {
+            _rendererModifier.AddOrder(_items, delta);
+            Refresh();
+        }
+        
+        private void Refresh()
+        {
+            if (_root == null) return;
+            _items = RendererCollector.Collect(_root);
+            Repaint();
+        }
 
         private void DrawHeaderRow()
         {
@@ -79,18 +190,7 @@ namespace RenderFlow.Window
 
         private void DrawContent()
         {
-            if (_root == null)
-            {
-                EditorGUILayout.HelpBox("Select a root GameObject", MessageType.Info);
-                return;
-            }
-
-            if (_items == null || _items.Count == 0)
-            {
-                EditorGUILayout.HelpBox("No Renderers found", MessageType.Warning);
-                return;
-            }
-
+            EditorGUILayout.Space(20);
             DrawHeaderRow();
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
@@ -99,7 +199,7 @@ namespace RenderFlow.Window
 
             EditorGUILayout.EndScrollView();
         }
-
+        
         #endregion
 
         #region Item
@@ -136,12 +236,5 @@ namespace RenderFlow.Window
         }
 
         #endregion
-
-        private void Refresh()
-        {
-            if (_root == null) return;
-            _items = RendererCollector.Collect(_root);
-            Repaint();
-        }
     }
 }
