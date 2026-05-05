@@ -10,10 +10,12 @@ namespace RenderFlow.Window
 {
     public class RenderFlowWindow : EditorWindow
     {
+        private const string LogoPath = "Assets/Editor/RenderFlow/Logo.png";
         private const int ToggleWidth = 20;
         private const int OrderWidth = 70;
         private const int LayerWidth = 110;
         
+        private Texture2D _logo;
         private GameObject _root;
         private List<RenderFlowItem> _items = new();
         private Vector2 _scroll;
@@ -22,7 +24,6 @@ namespace RenderFlow.Window
         private int _orderDelta = 1;
         private int _setOrderValue;
         private int _selectedLayerIndex;
-        private string[] _sortingLayers;
         
         [MenuItem("Tools/RenderFlow #t")]
         public static void ShowWindow()
@@ -46,12 +47,26 @@ namespace RenderFlow.Window
         private void OnGUI()
         {
             _styles ??= new RenderFlowStyles();
+            SetLogo();
             DrawHeader();
             
             if (!CanDrawContent()) return;
             
             DrawModifiers();
             DrawContent();
+        }
+
+        private void SetLogo()
+        {
+            _logo = AssetDatabase.LoadAssetAtPath<Texture2D>(LogoPath);
+        }
+
+        private void DrawLogo()
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.Space(10);
+            GUILayout.Label(_logo, GUILayout.Height(50));
+            EditorGUILayout.EndHorizontal();
         }
         
         private bool CanDrawContent()
@@ -77,7 +92,7 @@ namespace RenderFlow.Window
         {
             EditorGUILayout.Space(5);
             EditorGUILayout.LabelField("RenderFlow", EditorStyles.boldLabel);
-
+            DrawLogo();
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Root", GUILayout.Width(30));
             GameObject newRoot = (GameObject)EditorGUILayout.ObjectField(_root, typeof(GameObject), true);
@@ -102,16 +117,15 @@ namespace RenderFlow.Window
 
         private void DrawLayer()
         {
-            if (_sortingLayers == null)
-                _sortingLayers = SortingLayer.layers.Select(l => l.name).ToArray();
+            string[] sortingLayers = SortingLayer.layers.Select(l => l.name).ToArray();
 
             EditorGUILayout.BeginHorizontal();
 
-            _selectedLayerIndex = EditorGUILayout.Popup("Layer", _selectedLayerIndex, _sortingLayers);
+            _selectedLayerIndex = EditorGUILayout.Popup("Layer", _selectedLayerIndex, sortingLayers);
 
             if (GUILayout.Button("Apply", GUILayout.Width(80)))
             {
-                _rendererModifier.SetLayer(_items, _sortingLayers[_selectedLayerIndex]);
+                _rendererModifier.SetLayer(_items, sortingLayers[_selectedLayerIndex]);
                 Refresh();
             }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using RenderFlow.Shared.Models;
 using UnityEditor;
 
@@ -8,7 +9,7 @@ namespace RenderFlow.Features
     {
         public void SetOrder(List<RenderFlowItem> items, int order)
         {
-            foreach (var item in items)
+            foreach (RenderFlowItem item in items)
             {
                 if (!item.IsSelected) continue;
 
@@ -20,7 +21,7 @@ namespace RenderFlow.Features
 
         public void AddOrder(List<RenderFlowItem> items, int delta)
         {
-            foreach (var item in items)
+            foreach (RenderFlowItem item in items)
             {
                 if (!item.IsSelected) continue;
 
@@ -32,12 +33,36 @@ namespace RenderFlow.Features
 
         public void SetLayer(List<RenderFlowItem> items, string layer)
         {
-            foreach (var item in items)
+            foreach (RenderFlowItem item in items)
             {
                 if (!item.IsSelected) continue;
 
                 Undo.RecordObject(item.Renderer, "Set Sorting Layer");
                 item.Renderer.sortingLayerName = layer;
+                EditorUtility.SetDirty(item.Renderer);
+            }
+        }
+        
+        public void SetSelection(List<RenderFlowItem> items, bool value)
+        {
+            foreach (RenderFlowItem item in items)
+                item.IsSelected = value;
+        }
+
+        public List<RenderFlowItem> SortByOrder(List<RenderFlowItem> items)
+        {
+            return items
+                .OrderBy(i => i.Renderer.sortingOrder)
+                .ToList();
+        }
+
+        public void NormalizeOrder(List<RenderFlowItem> items)
+        {
+            int order = 0;
+            foreach (RenderFlowItem item in items.OrderBy(i => i.Renderer.sortingOrder))
+            {
+                Undo.RecordObject(item.Renderer, "Normalize Sorting Order");
+                item.Renderer.sortingOrder = order++;
                 EditorUtility.SetDirty(item.Renderer);
             }
         }
