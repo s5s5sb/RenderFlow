@@ -24,6 +24,8 @@ namespace RenderFlow.Window
         private int _orderDelta = 1;
         private int _setOrderValue;
         private int _selectedLayerIndex;
+        private bool _sortAscending = true;
+        private bool _sortActive;
         
         [MenuItem("Tools/RenderFlow #t")]
         public static void ShowWindow()
@@ -33,6 +35,7 @@ namespace RenderFlow.Window
 
         private void OnEnable()
         {
+            SetLogo();
             _rendererModifier = new RendererModifier();
             EditorApplication.hierarchyChanged += Refresh;
         }
@@ -47,7 +50,6 @@ namespace RenderFlow.Window
         private void OnGUI()
         {
             _styles ??= new RenderFlowStyles();
-            SetLogo();
             DrawHeader();
             
             if (!CanDrawContent()) return;
@@ -101,7 +103,10 @@ namespace RenderFlow.Window
             if (newRoot != _root)
             {
                 _root = newRoot;
-                Refresh();
+                _sortAscending = true;
+                _sortActive = false;
+                _items = RendererCollector.Collect(_root);
+                Repaint();
             }
         }
         
@@ -113,6 +118,9 @@ namespace RenderFlow.Window
             DrawOrderDelta();
             DrawSetOrder();
             DrawLayer();
+
+            EditorGUILayout.Space(10);
+            DrawSelectionControls();
         }
 
         private void DrawLayer()
@@ -151,6 +159,8 @@ namespace RenderFlow.Window
         {
             EditorGUILayout.BeginHorizontal();
 
+            EditorGUILayout.LabelField("Change Order", GUILayout.Width(150));
+            
             if (GUILayout.Button("-10"))
                 ApplyDelta(-10);
 
@@ -182,8 +192,34 @@ namespace RenderFlow.Window
         private void Refresh()
         {
             if (_root == null) return;
-            _items = RendererCollector.Collect(_root);
+            RendererCollector.Refresh(_root, _items);
+    
+            if (_sortActive)
+                _items = _rendererModifier.SortByOrder(_items, !_sortAscending);
+    
             Repaint();
+        }
+        
+        private void DrawSelectionControls()
+        {
+            EditorGUILayout.Space(20);
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("Select All"))
+                _rendererModifier.SetSelection(_items, true);
+
+            if (GUILayout.Button("Unselect All"))
+                _rendererModifier.SetSelection(_items, false);
+
+            string sortLabel = _sortAscending ? "Sort by Order ↓" : "Sort by Order ↑";
+            if (GUILayout.Button(sortLabel))
+            {
+                _sortActive = true;
+                _items = _rendererModifier.SortByOrder(_items, _sortAscending);
+                _sortAscending = !_sortAscending;
+            }
+
+            EditorGUILayout.EndHorizontal();
         }
 
         private void DrawHeaderRow()
@@ -192,7 +228,14 @@ namespace RenderFlow.Window
     
             GUILayout.Label("", GUILayout.Width(ToggleWidth));
             GUILayout.Label("Component", GUILayout.ExpandWidth(true));
-            GUILayout.Label("Order", GUILayout.Width(OrderWidth));
+            
+            string sortLabel = "Order";
+            string sortPrefix = "";
+            if (_sortActive)
+            {
+                sortPrefix = _sortAscending ? "↑" : "↓";
+            }
+            GUILayout.Label(sortLabel + sortPrefix, GUILayout.Width(OrderWidth));
             GUILayout.Label("Layer", GUILayout.Width(LayerWidth));
     
             EditorGUILayout.EndHorizontal();
@@ -204,7 +247,6 @@ namespace RenderFlow.Window
 
         private void DrawContent()
         {
-            EditorGUILayout.Space(20);
             DrawHeaderRow();
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 

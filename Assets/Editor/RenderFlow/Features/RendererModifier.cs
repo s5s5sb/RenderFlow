@@ -49,22 +49,11 @@ namespace RenderFlow.Features
                 item.IsSelected = value;
         }
 
-        public List<RenderFlowItem> SortByOrder(List<RenderFlowItem> items)
+        public List<RenderFlowItem> SortByOrder(List<RenderFlowItem> items, bool ascending)
         {
-            return items
-                .OrderBy(i => i.Renderer.sortingOrder)
-                .ToList();
-        }
-
-        public void NormalizeOrder(List<RenderFlowItem> items)
-        {
-            int order = 0;
-            foreach (RenderFlowItem item in items.OrderBy(i => i.Renderer.sortingOrder))
-            {
-                Undo.RecordObject(item.Renderer, "Normalize Sorting Order");
-                item.Renderer.sortingOrder = order++;
-                EditorUtility.SetDirty(item.Renderer);
-            }
+            return ascending
+                ? items.OrderBy(i => i.Renderer.sortingOrder).ToList()
+                : items.OrderByDescending(i => i.Renderer.sortingOrder).ToList();
         }
     }
 }
