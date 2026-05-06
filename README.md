@@ -1,6 +1,6 @@
 # RenderFlow
 
-A Unity Editor tool for managing Sorting Orders and Sorting Layers across multiple Renderers in a hierarchy — all from a single window.
+A Unity Editor window for viewing and editing Sorting Orders and Layers on multiple Renderers at once
 
 ![RenderFlow Preview](docs/preview.png)
 
@@ -8,8 +8,8 @@ A Unity Editor tool for managing Sorting Orders and Sorting Layers across multip
 
 ## Features
 
-- **Hierarchy view** — displays all Renderers under a root GameObject with depth indentation mirroring the scene hierarchy
-- **Sorting Order display** — shows the current `sortingOrder` of each Renderer in the list
+- **Hierarchy view** - displays all Renderers under a root GameObject with depth indentation mirroring the scene hierarchy
+- **Sorting Order display** - shows the current `sortingOrder` of each Renderer in the list
 - **Sorting Layer display** — shows the current `sortingLayerName` of each Renderer
 - **Batch order editing** — increment or decrement sorting order by ±1 or ±10 across selected Renderers, or set an exact value
 - **Batch layer editing** — assign a Sorting Layer to all selected Renderers at once
